@@ -7,7 +7,8 @@ const AppState = {
     period: 'current_month', // current_month, last_month, last_3_months, year
     searchText: '',
     typeFilter: 'all',
-    editingId: null
+    editingId: null,
+    selectedTransactions: []
 };
 
 // Categorias
@@ -173,7 +174,21 @@ function updateKPIs() {
         }
     });
 
-    const balance = income - expense;
+    let balance = income - expense;
+
+    // Aplica overrides manuais se existirem
+    const session = DB.getSession();
+    const meta = session?.user?.user_metadata || {};
+    
+    if (meta.manual_balance !== undefined && meta.manual_balance !== '') {
+        balance = parseFloat(meta.manual_balance);
+    }
+    if (meta.manual_income !== undefined && meta.manual_income !== '') {
+        income = parseFloat(meta.manual_income);
+    }
+    if (meta.manual_expense !== undefined && meta.manual_expense !== '') {
+        expense = parseFloat(meta.manual_expense);
+    }
 
     document.getElementById('kpi-balance').textContent = formatCurrency(balance);
     document.getElementById('kpi-income').textContent = formatCurrency(income);
@@ -196,8 +211,14 @@ function renderTable() {
     const tbody = document.getElementById('transactions-table-body');
     tbody.innerHTML = '';
 
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.onclick = toggleSelectAll;
+    }
+
     if (AppState.filteredTransactions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-zinc-500">Nenhuma transação encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500">Nenhuma transação encontrada.</td></tr>`;
         return;
     }
 
@@ -210,9 +231,14 @@ function renderTable() {
             ? `<span class="px-2.5 py-1 text-xs rounded-full bg-brand-emerald/10 text-brand-emerald font-medium border border-brand-emerald/20">Pago</span>`
             : `<span class="px-2.5 py-1 text-xs rounded-full bg-amber-500/10 text-amber-500 font-medium border border-amber-500/20">Pendente</span>`;
 
+        const isChecked = AppState.selectedTransactions.includes(t.id);
+
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-zinc-800/50 smooth-transition';
+        tr.className = `smooth-transition ${isChecked ? 'bg-zinc-800/80' : 'hover:bg-zinc-800/50'}`;
         tr.innerHTML = `
+            <td class="px-4 py-3">
+                <input type="checkbox" value="${t.id}" class="tx-checkbox rounded border-zinc-700 bg-zinc-900 text-brand-emerald focus:ring-brand-emerald" ${isChecked ? 'checked' : ''} onchange="toggleSelection('${t.id}')">
+            </td>
             <td class="px-4 py-3 whitespace-nowrap text-zinc-300">${formatDate(t.date)}</td>
             <td class="px-4 py-3 font-medium text-zinc-200">${t.description}</td>
             <td class="px-4 py-3">
@@ -236,6 +262,7 @@ function renderTable() {
     });
 
     lucide.createIcons();
+    updateBulkActionBar();
 }
 
 // Lógica de Gráficos (Chart.js)
@@ -564,15 +591,28 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
                     return; // arquivo vazio
                 }
 
-                const transactions = data.map(row => ({
-                    description: row.description,
-                    amount: parseFloat(row.amount),
-                    type: row.type,
-                    category: row.category,
-                    date: row.date,
-                    payment_method: row.payment_method,
-                    status: row.status
-                }));
+                const transactions = data.map(row => {
+                    let parsedDate = row.date;
+                    // Fix para datas no formato DD/MM/AAAA ou DD/MM/AA
+                    if (parsedDate && parsedDate.includes('/')) {
+                        const parts = parsedDate.split('/');
+                        if (parts.length === 3) {
+                            let [d, m, y] = parts;
+                            if (y.length === 2) y = '20' + y;
+                            parsedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                        }
+                    }
+
+                    return {
+                        description: row.description,
+                        amount: parseFloat(row.amount),
+                        type: row.type,
+                        category: row.category,
+                        date: parsedDate,
+                        payment_method: row.payment_method,
+                        status: row.status
+                    };
+                });
 
                 await DB.importTransactions(transactions);
                 await loadData();
@@ -645,3 +685,100 @@ window.logout = () => {
     document.getElementById('auth-password').value = '';
     AppState.transactions = []; // Limpa os dados em memória
 };
+
+// =====================================
+// AÇÕES EM MASSA (BULK DELETE)
+// =====================================
+
+window.toggleSelection = (id) => {
+    const idx = AppState.selectedTransactions.indexOf(id);
+    if (idx === -1) {
+        AppState.selectedTransactions.push(id);
+    } else {
+        AppState.selectedTransactions.splice(idx, 1);
+    }
+    updateBulkActionBar();
+    // Update individual row style without re-rendering everything
+    renderTable(); // Re-render is safer to ensure style consistency
+};
+
+window.toggleSelectAll = (e) => {
+    if (e.target.checked) {
+        AppState.selectedTransactions = AppState.filteredTransactions.map(t => t.id);
+    } else {
+        AppState.selectedTransactions = [];
+    }
+    renderTable();
+};
+
+window.clearSelection = () => {
+    AppState.selectedTransactions = [];
+    renderTable();
+};
+
+window.updateBulkActionBar = () => {
+    const bar = document.getElementById('bulk-action-bar');
+    const countSpan = document.getElementById('bulk-count');
+    
+    if (AppState.selectedTransactions.length > 0) {
+        countSpan.textContent = AppState.selectedTransactions.length;
+        bar.classList.remove('translate-y-24');
+    } else {
+        bar.classList.add('translate-y-24');
+    }
+};
+
+window.bulkDelete = async () => {
+    if (!confirm(`Tem certeza que deseja apagar ${AppState.selectedTransactions.length} transações?`)) return;
+    
+    try {
+        await DB.bulkDeleteTransactions(AppState.selectedTransactions);
+        AppState.selectedTransactions = [];
+        await loadData();
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao excluir transações em massa.");
+    }
+};
+
+// =====================================
+// EDIÇÃO MANUAL DE SALDOS (PROFILE)
+// =====================================
+
+window.openProfileModal = () => {
+    const session = DB.getSession();
+    const meta = session?.user?.user_metadata || {};
+    
+    document.getElementById('prof-balance').value = meta.manual_balance || '';
+    document.getElementById('prof-income').value = meta.manual_income || '';
+    document.getElementById('prof-expense').value = meta.manual_expense || '';
+    
+    document.getElementById('profile-modal').classList.remove('hidden');
+};
+
+window.closeProfileModal = () => {
+    document.getElementById('profile-modal').classList.add('hidden');
+};
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const balance = document.getElementById('prof-balance').value;
+    const income = document.getElementById('prof-income').value;
+    const expense = document.getElementById('prof-expense').value;
+    
+    const overrides = {
+        manual_balance: balance === '' ? null : balance,
+        manual_income: income === '' ? null : income,
+        manual_expense: expense === '' ? null : expense
+    };
+    
+    try {
+        await DB.updateProfile(overrides);
+        closeProfileModal();
+        updateDashboard(); // Reflete os novos valores na UI instantaneamente
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao salvar ajustes manuais.");
+    }
+});

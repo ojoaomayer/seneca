@@ -79,6 +79,30 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ------------------------------------
+// ROTAS DE PERFIL (MANUAL OVERRIDES)
+// ------------------------------------
+
+app.put('/api/profile', authenticate, async (req, res) => {
+    const { overrides } = req.body; // { manual_balance, manual_income, manual_expense }
+    
+    // Atualizar user_metadata
+    const { data: user, error: getUserError } = await supabase.auth.admin.getUserById(req.user.id);
+    if (getUserError) return res.status(500).json({ error: getUserError.message });
+    
+    const currentMeta = user.user.user_metadata || {};
+    
+    const { data, error } = await supabase.auth.admin.updateUserById(req.user.id, {
+        user_metadata: {
+            ...currentMeta,
+            ...overrides
+        }
+    });
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ user: data.user });
+});
+
+// ------------------------------------
 // ROTAS DE TRANSAÇÕES
 // ------------------------------------
 
@@ -131,6 +155,22 @@ app.post('/api/transactions/bulk', authenticate, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     return res.status(201).json(data);
+});
+
+app.post('/api/transactions/bulk-delete', authenticate, async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Lista de IDs inválida' });
+    }
+
+    const { data, error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', ids)
+        .eq('user_id', req.user.id);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(204).send();
 });
 
 app.put('/api/transactions/:id', authenticate, async (req, res) => {

@@ -59,6 +59,28 @@ const DB = {
         return currentSession;
     },
 
+    setSession(data) {
+        currentSession = data;
+        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    },
+
+    async updateProfile(overrides) {
+        const res = await fetch('/api/profile', {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify({ overrides })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        
+        // Atualiza a sessão local com o novo user_metadata
+        if (currentSession && currentSession.user) {
+            currentSession.user = data.user;
+            this.setSession(currentSession);
+        }
+        return data.user;
+    },
+
     // ==========================================
     // TRANSACTIONS
     // ==========================================
@@ -107,6 +129,16 @@ const DB = {
         const res = await fetch(`/api/transactions/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return true;
+    },
+
+    async bulkDeleteTransactions(ids) {
+        const res = await fetch('/api/transactions/bulk-delete', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ ids })
         });
         if (!res.ok) throw new Error(await res.text());
         return true;
