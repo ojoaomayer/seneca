@@ -1,6 +1,6 @@
-// app.js
+﻿// app.js
 
-// Estado da Aplicação
+// Estado da AplicaÃƒÂ§ÃƒÂ£o
 const AppState = {
     transactions: [],
     filteredTransactions: [],
@@ -8,20 +8,21 @@ const AppState = {
     searchText: '',
     typeFilter: 'all',
     editingId: null,
-    selectedTransactions: []
+    selectedTransactions: [],
+    investments: []
 };
 
 // Categorias
 const CATEGORIES = [
-    "Moradia", "Alimentação", "Transporte", "Lazer", 
-    "Saúde", "Salário", "Investimentos", "Outros"
+    "Moradia", "AlimentaÃƒÂ§ÃƒÂ£o", "Transporte", "Lazer", 
+    "SaÃƒÂºde", "SalÃƒÂ¡rio", "Investimentos", "Outros"
 ];
 
-// Instâncias dos Gráficos
+// InstÃƒÂ¢ncias dos GrÃƒÂ¡ficos
 let lineChartInstance = null;
 let donutChartInstance = null;
 
-// Inicialização
+// InicializaÃƒÂ§ÃƒÂ£o
 document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
     initUI();
@@ -38,27 +39,99 @@ document.addEventListener('DOMContentLoaded', async () => {
 function showApp() {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('app-header').classList.remove('hidden');
-    document.getElementById('app-main').classList.remove('hidden');
+    switchTab('dashboard');
     
     // Atualiza nome do perfil
     const session = DB.getSession();
     if (session && session.user) {
         const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
-        document.getElementById('profile-name').textContent = `Olá, ${name}`;
+        document.getElementById('profile-name').textContent = `OlÃƒÂ¡, ${name}`;
     }
     
     loadData();
+    loadInvestments();
 }
 
 function showAuth() {
     document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('app-header').classList.add('hidden');
     document.getElementById('app-main').classList.add('hidden');
+    document.getElementById('investments-main').classList.add('hidden');
 }
+
+window.switchTab = (tab) => {
+    const mainDashboard = document.getElementById('app-main');
+    const mainInvestments = document.getElementById('investments-main');
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navInvestments = document.getElementById('nav-investments');
+
+    if (tab === 'dashboard') {
+        mainDashboard.classList.remove('hidden');
+        mainInvestments.classList.add('hidden');
+        navDashboard.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-zinc-800 text-zinc-100 shadow-sm transition-colors";
+        navInvestments.className = "px-3 py-1.5 text-sm font-medium rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors";
+    } else {
+        mainDashboard.classList.add('hidden');
+        mainInvestments.classList.remove('hidden');
+        navInvestments.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-zinc-800 text-zinc-100 shadow-sm transition-colors";
+        navDashboard.className = "px-3 py-1.5 text-sm font-medium rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors";
+    }
+}
+
+// Custom Toasts
+window.toast = {
+    show: (msg, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        const color = type === 'success' ? 'brand-emerald' : 'brand-carmine';
+        const icon = type === 'success' ? 'check-circle-2' : 'alert-circle';
+        
+        t.className = `flex items-center gap-3 bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl shadow-2xl pointer-events-auto transform transition-all duration-300 translate-x-full opacity-0`;
+        t.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 text-${color}"></i><span class="text-sm font-medium">${msg}</span>`;
+        
+        container.appendChild(t);
+        lucide.createIcons();
+        
+        requestAnimationFrame(() => {
+            t.classList.remove('translate-x-full', 'opacity-0');
+        });
+        
+        setTimeout(() => {
+            t.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => t.remove(), 300);
+        }, 4000);
+    },
+    success: (msg) => window.toast.show(msg, 'success'),
+    error: (msg) => window.toast.show(msg, 'error')
+};
+
+// Custom Confirm
+window.customConfirm = (msg) => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-confirm-modal');
+        const okBtn = document.getElementById('btn-confirm-ok');
+        const cancelBtn = document.getElementById('btn-confirm-cancel');
+        
+        document.getElementById('custom-confirm-message').textContent = msg;
+        modal.classList.remove('hidden');
+        
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+        };
+        
+        const onOk = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+        
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+};
 
 // Setup Inicial de UI
 function initUI() {
-    // Popula categorias no formulário
+    // Popula categorias no formulÃƒÂ¡rio
     const catSelect = document.getElementById('tx-category');
     CATEGORIES.forEach(cat => {
         const opt = document.createElement('option');
@@ -67,10 +140,10 @@ function initUI() {
         catSelect.appendChild(opt);
     });
 
-    // Configura data padrão
+    // Configura data padrÃƒÂ£o
     document.getElementById('tx-date').valueAsDate = new Date();
 
-    // Define saudação baseado na hora
+    // Define saudaÃƒÂ§ÃƒÂ£o baseado na hora
     const hour = new Date().getHours();
     let greeting = 'Boa noite!';
     if (hour >= 5 && hour < 12) greeting = 'Bom dia!';
@@ -96,16 +169,16 @@ async function loadData() {
         applyFilters();
     } catch (error) {
         console.error("Erro ao carregar dados", error);
-        alert("Ocorreu um erro ao carregar as transações.");
+        alert("Ocorreu um erro ao carregar as transaÃƒÂ§ÃƒÂµes.");
     }
 }
 
-// Lógica de Filtros
+// LÃƒÂ³gica de Filtros
 function applyFilters() {
     const now = new Date();
     
     // Filtro de Data
-    let startDate = new Date(0); // Padrão: tudo
+    let startDate = new Date(0); // PadrÃƒÂ£o: tudo
     let endDate = new Date('2100-01-01');
 
     if (AppState.period === 'current_month') {
@@ -148,7 +221,7 @@ function updateDashboard() {
     renderCharts();
 }
 
-// Utils de Formatação
+// Utils de FormataÃƒÂ§ÃƒÂ£o
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
@@ -158,7 +231,7 @@ const formatDate = (dateString) => {
     return `${day}/${month}/${year}`;
 };
 
-// Atualiza Cartões de KPI
+// Atualiza CartÃƒÂµes de KPI
 function updateKPIs() {
     let income = 0;
     let expense = 0;
@@ -206,7 +279,7 @@ function updateKPIs() {
     }
 }
 
-// Renderiza Tabela de Transações
+// Renderiza Tabela de TransaÃƒÂ§ÃƒÂµes
 function renderTable() {
     const tbody = document.getElementById('transactions-table-body');
     tbody.innerHTML = '';
@@ -218,7 +291,7 @@ function renderTable() {
     }
 
     if (AppState.filteredTransactions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500">Nenhuma transação encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500">Nenhuma transaÃƒÂ§ÃƒÂ£o encontrada.</td></tr>`;
         return;
     }
 
@@ -265,7 +338,7 @@ function renderTable() {
     updateBulkActionBar();
 }
 
-// Lógica de Gráficos (Chart.js)
+// LÃƒÂ³gica de GrÃƒÂ¡ficos (Chart.js)
 function renderCharts() {
     renderLineChart();
     renderDonutChart();
@@ -437,7 +510,7 @@ function closeModal() {
     document.getElementById('transaction-modal').classList.add('hidden');
     document.getElementById('transaction-form').reset();
     document.getElementById('tx-id').value = '';
-    document.getElementById('modal-title').textContent = 'Nova Transação';
+    document.getElementById('modal-title').textContent = 'Nova TransaÃƒÂ§ÃƒÂ£o';
     setTxType('expense');
     document.getElementById('tx-date').valueAsDate = new Date();
     AppState.editingId = null;
@@ -473,7 +546,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
         await loadData();
         closeModal();
     } catch (error) {
-        alert("Erro ao salvar a transação.");
+        alert("Erro ao salvar a transaÃƒÂ§ÃƒÂ£o.");
     } finally {
         const btn = document.getElementById('btn-save-tx');
         btn.textContent = 'Salvar';
@@ -496,18 +569,18 @@ window.editTransaction = (id) => {
     document.getElementById('tx-status').value = tx.status;
     
     setTxType(tx.type);
-    document.getElementById('modal-title').textContent = 'Editar Transação';
+    document.getElementById('modal-title').textContent = 'Editar TransaÃƒÂ§ÃƒÂ£o';
     document.getElementById('transaction-modal').classList.remove('hidden');
 };
 
 // Delete
 window.deleteTransaction = async (id) => {
-    if (confirm("Tem certeza que deseja excluir esta transação?")) {
+    if (confirm("Tem certeza que deseja excluir esta transaÃƒÂ§ÃƒÂ£o?")) {
         try {
             await DB.deleteTransaction(id);
             await loadData();
         } catch (error) {
-            alert("Erro ao excluir.");
+            toast.error("Erro ao excluir.");
         }
     }
 };
@@ -537,11 +610,11 @@ function setupEventListeners() {
 // Exportar CSV
 function exportCSV() {
     if (AppState.filteredTransactions.length === 0) {
-        alert("Não há dados para exportar.");
+        alert("NÃƒÂ£o hÃƒÂ¡ dados para exportar.");
         return;
     }
 
-    const headers = ['Data', 'Descrição', 'Categoria', 'Método', 'Tipo', 'Status', 'Valor'];
+    const headers = ['Data', 'DescriÃƒÂ§ÃƒÂ£o', 'Categoria', 'MÃƒÂ©todo', 'Tipo', 'Status', 'Valor'];
     const rows = AppState.filteredTransactions.map(t => [
         t.date,
         `"${t.description}"`,
@@ -572,7 +645,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
         header: true,
         skipEmptyLines: true,
         transformHeader: function(h) {
-            // Remove espaços, converte para minúsculo e remove BOM do Excel
+            // Remove espaÃƒÂ§os, converte para minÃƒÂºsculo e remove BOM do Excel
             return h.trim().toLowerCase().replace(/^\uFEFF/, '');
         },
         complete: async function(results) {
@@ -584,7 +657,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
                     const keys = Object.keys(data[0]);
                     const hasAll = requiredFields.every(f => keys.includes(f));
                     if (!hasAll) {
-                        alert(`O CSV não possui as colunas corretas.\n\nEncontradas:\n${keys.join(', ')}\n\nNecessárias:\n${requiredFields.join(', ')}`);
+                        alert(`O CSV nÃƒÂ£o possui as colunas corretas.\n\nEncontradas:\n${keys.join(', ')}\n\nNecessÃƒÂ¡rias:\n${requiredFields.join(', ')}`);
                         return;
                     }
                 } else {
@@ -616,21 +689,21 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
 
                 await DB.importTransactions(transactions);
                 await loadData();
-                alert(`Importação concluída com sucesso! ${transactions.length} transações adicionadas.`);
+                alert(`ImportaÃƒÂ§ÃƒÂ£o concluÃƒÂ­da com sucesso! ${transactions.length} transaÃƒÂ§ÃƒÂµes adicionadas.`);
                 e.target.value = ''; // reseta o input
             } catch (err) {
                 console.error(err);
-                alert("Erro ao importar CSV.");
+                toast.error("Erro ao importar CSV.");
             }
         },
         error: function(error) {
-            alert("Erro ao ler arquivo CSV: " + error.message);
+            toast.error("Erro ao ler arquivo CSV: " + error.message);
         }
     });
 });
 
 // =====================================
-// AUTENTICAÇÃO E PERFIS
+// AUTENTICAÃƒâ€¡ÃƒÆ’O E PERFIS
 // =====================================
 
 let isLoginMode = true;
@@ -639,7 +712,7 @@ window.toggleAuthMode = () => {
     isLoginMode = !isLoginMode;
     document.getElementById('auth-title').textContent = isLoginMode ? 'Entrar' : 'Criar Conta';
     document.getElementById('btn-auth-submit').textContent = isLoginMode ? 'Entrar' : 'Cadastrar';
-    document.getElementById('auth-toggle-text').textContent = isLoginMode ? 'Não tem uma conta?' : 'Já tem uma conta?';
+    document.getElementById('auth-toggle-text').textContent = isLoginMode ? 'NÃƒÂ£o tem uma conta?' : 'JÃƒÂ¡ tem uma conta?';
     document.getElementById('btn-auth-toggle').textContent = isLoginMode ? 'Criar conta' : 'Entrar';
     
     // Mostrar/Esconder campo de nome
@@ -657,6 +730,8 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
     const name = document.getElementById('auth-name').value;
+    const rememberMe = document.getElementById('auth-remember').checked;
+    
     const btn = document.getElementById('btn-auth-submit');
     const originalText = btn.textContent;
     btn.textContent = 'Aguarde...';
@@ -664,14 +739,14 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
 
     try {
         if (isLoginMode) {
-            await DB.login(email, password);
+            await DB.login(email, password, rememberMe);
         } else {
             await DB.register(email, password, name);
-            alert("Conta criada com sucesso!");
+            toast.success("Conta criada com sucesso!");
         }
         showApp();
     } catch (err) {
-        alert(err.message);
+        toast.error(err.message);
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -683,11 +758,11 @@ window.logout = () => {
     showAuth();
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
-    AppState.transactions = []; // Limpa os dados em memória
+    AppState.transactions = []; // Limpa os dados em memÃƒÂ³ria
 };
 
 // =====================================
-// AÇÕES EM MASSA (BULK DELETE)
+// AÃƒâ€¡Ãƒâ€¢ES EM MASSA (BULK DELETE)
 // =====================================
 
 window.toggleSelection = (id) => {
@@ -729,20 +804,22 @@ window.updateBulkActionBar = () => {
 };
 
 window.bulkDelete = async () => {
-    if (!confirm(`Tem certeza que deseja apagar ${AppState.selectedTransactions.length} transações?`)) return;
+    if (!(await customConfirm(`Tem certeza que deseja apagar ${AppState.selectedTransactions.length} transaÃ§Ãµes?`))) return;
     
     try {
         await DB.bulkDeleteTransactions(AppState.selectedTransactions);
         AppState.selectedTransactions = [];
+        updateBulkActionBar(); // Resolve o bug da barra continuar visÃ­vel
         await loadData();
+        toast.success("TransaÃ§Ãµes apagadas com sucesso!");
     } catch (err) {
         console.error(err);
-        alert("Erro ao excluir transações em massa.");
+        toast.error("Erro ao excluir transaÃ§Ãµes em massa.");
     }
 };
 
 // =====================================
-// EDIÇÃO MANUAL DE SALDOS (PROFILE)
+// EDIÃƒâ€¡ÃƒÆ’O MANUAL DE SALDOS (PROFILE)
 // =====================================
 
 window.openProfileModal = () => {
@@ -779,6 +856,168 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         updateDashboard(); // Reflete os novos valores na UI instantaneamente
     } catch (err) {
         console.error(err);
-        alert("Erro ao salvar ajustes manuais.");
+        toast.error("Erro ao salvar ajustes manuais.");
     }
 });
+
+// =====================================
+// INVESTIMENTOS
+// =====================================
+
+async function loadInvestments() {
+    try {
+        AppState.investments = await DB.getInvestments();
+        updateInvestmentKPIs();
+        renderInvestmentsTable();
+    } catch (err) {
+        toast.error("Erro ao carregar investimentos.");
+    }
+}
+
+function updateInvestmentKPIs() {
+    let total = 0, fixed = 0, variable = 0;
+    
+    AppState.investments.forEach(inv => {
+        if (inv.status === 'active') {
+            const amount = parseFloat(inv.amount);
+            total += amount;
+            if (inv.type === 'fixed') fixed += amount;
+            if (inv.type === 'variable') variable += amount;
+        }
+    });
+    
+    document.getElementById('kpi-inv-total').textContent = formatCurrency(total);
+    document.getElementById('kpi-inv-fixed').textContent = formatCurrency(fixed);
+    document.getElementById('kpi-inv-variable').textContent = formatCurrency(variable);
+}
+
+function renderInvestmentsTable() {
+    const tbody = document.getElementById('investments-table-body');
+    tbody.innerHTML = '';
+
+    if (AppState.investments.length === 0) {
+        tbody.innerHTML = <tr><td colspan="6" class="px-4 py-8 text-center text-zinc-500">Nenhum investimento cadastrado.</td></tr>;
+        return;
+    }
+    
+    const typeMap = {
+        'fixed': 'Renda Fixa',
+        'variable': 'Renda VariÃ¡vel',
+        'crypto': 'Criptomoeda',
+        'other': 'Outros'
+    };
+
+    AppState.investments.forEach(inv => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-zinc-800/50 smooth-transition';
+        
+        const statusBadge = inv.status === 'active' 
+            ? <span class="px-2.5 py-1 text-xs rounded-full bg-brand-emerald/10 text-brand-emerald font-medium border border-brand-emerald/20">Ativo</span>
+            : <span class="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-400 font-medium border border-zinc-700">Vendido</span>;
+            
+        tr.innerHTML = 
+            <td class="px-4 py-3 font-medium text-zinc-200"></td>
+            <td class="px-4 py-3">
+                <span class="px-2.5 py-1 text-xs rounded-lg bg-zinc-800 text-zinc-400"></span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-zinc-300"></td>
+            <td class="px-4 py-3 text-right font-semibold text-zinc-100"></td>
+            <td class="px-4 py-3 text-center"></td>
+            <td class="px-4 py-3 text-right">
+                <div class="flex items-center justify-end gap-2">
+                    <button onclick="editInvestment('')" class="p-1.5 text-zinc-400 hover:text-brand-emerald hover:bg-brand-emerald/10 rounded-md transition-colors" title="Editar">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteInvestment('')" class="p-1.5 text-zinc-400 hover:text-brand-carmine hover:bg-brand-carmine/10 rounded-md transition-colors" title="Excluir">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </td>
+        ;
+        tbody.appendChild(tr);
+    });
+    
+    lucide.createIcons();
+}
+
+window.openInvestmentModal = () => {
+    AppState.editingId = null;
+    document.getElementById('inv-modal-title').textContent = 'Novo Investimento';
+    document.getElementById('investment-form').reset();
+    document.getElementById('inv-id').value = '';
+    
+    // Default date to today
+    const now = new Date();
+    document.getElementById('inv-date').value = now.toISOString().split('T')[0];
+    
+    document.getElementById('investment-modal').classList.remove('hidden');
+};
+
+window.editInvestment = (id) => {
+    const inv = AppState.investments.find(i => i.id === id);
+    if (!inv) return;
+    
+    AppState.editingId = id;
+    document.getElementById('inv-modal-title').textContent = 'Editar Investimento';
+    
+    document.getElementById('inv-id').value = inv.id;
+    document.getElementById('inv-name').value = inv.name;
+    document.getElementById('inv-amount').value = inv.amount;
+    document.getElementById('inv-type').value = inv.type;
+    document.getElementById('inv-date').value = inv.date;
+    document.getElementById('inv-status').value = inv.status;
+    
+    document.getElementById('investment-modal').classList.remove('hidden');
+};
+
+window.closeInvestmentModal = () => {
+    document.getElementById('investment-modal').classList.add('hidden');
+    AppState.editingId = null;
+};
+
+document.getElementById('investment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('inv-id').value;
+    const inv = {
+        name: document.getElementById('inv-name').value,
+        amount: parseFloat(document.getElementById('inv-amount').value),
+        date: document.getElementById('inv-date').value,
+        type: document.getElementById('inv-type').value,
+        status: document.getElementById('inv-status').value
+    };
+    
+    const btn = document.getElementById('btn-save-inv');
+    const originalText = btn.textContent;
+    btn.textContent = 'Salvando...';
+    btn.disabled = true;
+    
+    try {
+        if (id) {
+            await DB.updateInvestment(id, inv);
+            toast.success("Investimento atualizado!");
+        } else {
+            await DB.addInvestment(inv);
+            toast.success("Investimento criado com sucesso!");
+        }
+        closeInvestmentModal();
+        await loadInvestments();
+    } catch (err) {
+        toast.error("Erro ao salvar o investimento.");
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+});
+
+window.deleteInvestment = async (id) => {
+    if (await customConfirm("Tem certeza que deseja apagar este investimento?")) {
+        try {
+            await DB.deleteInvestment(id);
+            toast.success("Investimento excluÃ­do.");
+            await loadInvestments();
+        } catch (err) {
+            toast.error("Erro ao excluir.");
+        }
+    }
+};

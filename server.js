@@ -202,6 +202,67 @@ app.delete('/api/transactions/:id', authenticate, async (req, res) => {
     return res.status(204).send();
 });
 
+// ------------------------------------
+// ROTAS DE INVESTIMENTOS
+// ------------------------------------
+
+app.get('/api/investments', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('investments')
+        .select('*')
+        .eq('user_id', req.user.id)
+        .order('date', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+});
+
+app.post('/api/investments', authenticate, async (req, res) => {
+    const inv = req.body;
+    const { data, error } = await supabase
+        .from('investments')
+        .insert([{
+            ...inv,
+            id: crypto.randomUUID(),
+            created_at: new Date().toISOString(),
+            user_id: req.user.id
+        }])
+        .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(201).json(data[0]);
+});
+
+app.put('/api/investments/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const { data, error } = await supabase
+        .from('investments')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', req.user.id)
+        .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data || data.length === 0) return res.status(404).json({ error: 'Investimento não encontrado' });
+    
+    return res.json(data[0]);
+});
+
+app.delete('/api/investments/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    
+    const { data, error } = await supabase
+        .from('investments')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', req.user.id);
+        
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(204).send();
+});
+
 // Exporta o app para o Vercel
 module.exports = app;
 
