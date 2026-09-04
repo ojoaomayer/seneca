@@ -9,16 +9,27 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Supabase Client Admin (Service Role)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || 'placeholder';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Supabase Client Auth (Anon Key) - usado para login/cadastro via auth api
-const supabaseAnon = createClient(supabaseUrl, process.env.SUPABASE_PUBLISHABLE_KEY);
+const supabaseAnonKey = process.env.SUPABASE_PUBLISHABLE_KEY || 'placeholder';
+const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Verifica se as variáveis de ambiente foram configuradas
+app.use((req, res, next) => {
+    if (supabaseUrl === 'https://placeholder.supabase.co') {
+        return res.status(500).json({ 
+            error: 'Servidor mal configurado: As chaves do Supabase não foram encontradas nas variáveis de ambiente do Vercel.' 
+        });
+    }
+    next();
+});
 
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, 'public')));
