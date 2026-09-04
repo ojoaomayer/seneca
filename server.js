@@ -151,7 +151,12 @@ app.delete('/api/transactions/:id', authenticate, async (req, res) => {
     return res.status(204).send();
 });
 
-// Iniciar o servidor
-app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-});
+// Exporta o app para o Vercel
+module.exports = app;
+
+// Inicia o servidor localmente (apenas se rodar via 'node server.js')
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Servidor rodando em http://localhost:${port}`);
+    });
+}
