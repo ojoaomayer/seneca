@@ -1,4 +1,4 @@
-﻿// app.js
+// app.js
 
 // Estado da AplicaÃƒÂ§ÃƒÂ£o
 const AppState = {
@@ -896,7 +896,7 @@ function renderInvestmentsTable() {
     tbody.innerHTML = '';
 
     if (AppState.investments.length === 0) {
-        tbody.innerHTML = <tr><td colspan="6" class="px-4 py-8 text-center text-zinc-500">Nenhum investimento cadastrado.</td></tr>;
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-zinc-500">Nenhum investimento cadastrado.</td></tr>`;
         return;
     }
     
@@ -912,28 +912,28 @@ function renderInvestmentsTable() {
         tr.className = 'hover:bg-zinc-800/50 smooth-transition';
         
         const statusBadge = inv.status === 'active' 
-            ? <span class="px-2.5 py-1 text-xs rounded-full bg-brand-emerald/10 text-brand-emerald font-medium border border-brand-emerald/20">Ativo</span>
-            : <span class="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-400 font-medium border border-zinc-700">Vendido</span>;
+            ? `<span class="px-2.5 py-1 text-xs rounded-full bg-brand-emerald/10 text-brand-emerald font-medium border border-brand-emerald/20">Ativo</span>`
+            : `<span class="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-400 font-medium border border-zinc-700">Vendido</span>`;
             
-        tr.innerHTML = 
-            <td class="px-4 py-3 font-medium text-zinc-200"></td>
+        tr.innerHTML = `
+            <td class="px-4 py-3 font-medium text-zinc-200">${inv.name}</td>
             <td class="px-4 py-3">
-                <span class="px-2.5 py-1 text-xs rounded-lg bg-zinc-800 text-zinc-400"></span>
+                <span class="px-2.5 py-1 text-xs rounded-lg bg-zinc-800 text-zinc-400">${typeMap[inv.type]}</span>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap text-zinc-300"></td>
-            <td class="px-4 py-3 text-right font-semibold text-zinc-100"></td>
-            <td class="px-4 py-3 text-center"></td>
+            <td class="px-4 py-3 whitespace-nowrap text-zinc-300">${formatDate(inv.date)}</td>
+            <td class="px-4 py-3 text-right font-semibold text-zinc-100">${formatCurrency(inv.amount)}</td>
+            <td class="px-4 py-3 text-center">${statusBadge}</td>
             <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
-                    <button onclick="editInvestment('')" class="p-1.5 text-zinc-400 hover:text-brand-emerald hover:bg-brand-emerald/10 rounded-md transition-colors" title="Editar">
+                    <button onclick="editInvestment('${inv.id}')" class="p-1.5 text-zinc-400 hover:text-brand-emerald hover:bg-brand-emerald/10 rounded-md transition-colors" title="Editar">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="deleteInvestment('')" class="p-1.5 text-zinc-400 hover:text-brand-carmine hover:bg-brand-carmine/10 rounded-md transition-colors" title="Excluir">
+                    <button onclick="deleteInvestment('${inv.id}')" class="p-1.5 text-zinc-400 hover:text-brand-carmine hover:bg-brand-carmine/10 rounded-md transition-colors" title="Excluir">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>
             </td>
-        ;
+        `;
         tbody.appendChild(tr);
     });
     

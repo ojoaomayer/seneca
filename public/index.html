@@ -85,9 +85,12 @@
                     <input type="password" id="auth-password" required minlength="6" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="••••••••">
                 </div>
                 
-                <div class="flex items-center gap-2 mt-2">
-                    <input type="checkbox" id="auth-remember" checked class="rounded border-zinc-700 bg-zinc-900 text-brand-emerald focus:ring-brand-emerald">
-                    <label for="auth-remember" class="text-sm text-zinc-400">Lembrar de mim</label>
+                <div class="flex items-center justify-between mt-4 bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">
+                    <span class="text-sm font-medium text-zinc-300">Manter conectado</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auth-remember" checked class="sr-only peer">
+                        <div class="w-10 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-emerald"></div>
+                    </label>
                 </div>
                 
                 <button type="submit" id="btn-auth-submit" class="w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg font-medium transition-colors shadow-lg shadow-zinc-100/10 mt-6">
