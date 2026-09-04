@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seneca - Controle Financeiro Pessoal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            emerald: '#10b981', // Verde Esmeralda
+                            carmine: '#e11d48', // Carmim/Vermelho
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Kinetic Grid -->
+    <script src="kinetic-grid.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+
+    
+    <style>
+        /* Custom scrollbar and subtle transitions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46; 
+        }
+        
+        .smooth-transition {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-zinc-100 min-h-screen font-sans selection:bg-brand-emerald selection:text-white bg-[#161618]">
+    <!-- Kinetic Grid Canvas -->
+    <canvas id="kinetic-grid-canvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none"></canvas>
+    
+    <div class="relative z-10">
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md p-8 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
+            <div class="flex items-center gap-3 mb-8 justify-center">
+                <h1 class="text-4xl font-bold tracking-tight text-brand-emerald" style="font-family: 'Playfair Display', serif; font-style: italic;">Seneca</h1>
+            </div>
+            
+            <h2 id="auth-title" class="text-xl font-semibold mb-6 text-center">Entrar</h2>
+            
+            <form id="auth-form" class="space-y-4">
+                <div id="auth-name-group" class="hidden">
+                    <label class="block mb-1.5 text-sm font-medium text-zinc-300">Nome</label>
+                    <input type="text" id="auth-name" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="Seu nome">
+                </div>
+                <div>
+                    <label class="block mb-1.5 text-sm font-medium text-zinc-300">E-mail</label>
+                    <input type="email" id="auth-email" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="seu@email.com">
+                </div>
+                <div>
+                    <label class="block mb-1.5 text-sm font-medium text-zinc-300">Senha</label>
+                    <input type="password" id="auth-password" required minlength="6" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="••••••••">
+                </div>
+                
+                <button type="submit" id="btn-auth-submit" class="w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg font-medium transition-colors shadow-lg shadow-zinc-100/10 mt-6">
+                    Entrar
+                </button>
+            </form>
+            
+            <p class="text-center text-zinc-400 text-sm mt-6">
+                <span id="auth-toggle-text">Não tem uma conta?</span>
+                <button onclick="toggleAuthMode()" id="btn-auth-toggle" class="text-brand-emerald hover:text-emerald-400 font-medium ml-1">Criar conta</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Navbar / Header -->
+    <header id="app-header" class="hidden border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-brand-emerald" style="font-family: 'Playfair Display', serif; font-style: italic;">Seneca</h1>
+            </div>
+            
+            <div class="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+                <select id="period-selector" class="bg-zinc-900 border border-zinc-800 text-xs sm:text-sm rounded-lg focus:ring-brand-emerald focus:border-brand-emerald block px-2 sm:px-3 py-1.5 outline-none smooth-transition hover:border-zinc-700">
+                    <option value="current_month">Mês Atual</option>
+                    <option value="last_month">Mês Anterior</option>
+                    <option value="last_3_months">Últimos 3 Meses</option>
+                    <option value="year">Este Ano</option>
+                </select>
+                <div class="flex items-center gap-2 sm:gap-3 border-l border-zinc-800 pl-2 sm:pl-4 sm:ml-1">
+                    <span id="profile-name" class="hidden sm:inline text-sm font-medium text-zinc-300"></span>
+                    <button onclick="logout()" class="text-xs sm:text-sm bg-zinc-900 border border-zinc-800 hover:bg-brand-carmine/20 px-2 sm:px-3 py-1.5 rounded-lg text-zinc-400 hover:text-brand-carmine transition-colors">
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="app-main" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-2xl font-semibold text-zinc-100" id="greeting">Olá!</h2>
+                <p class="text-zinc-400 text-sm mt-1">Aqui está o resumo das suas finanças.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="file" id="csv-upload" accept=".csv" class="hidden">
+                <button onclick="document.getElementById('csv-upload').click()" class="bg-zinc-800 text-zinc-100 hover:bg-zinc-700 px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 smooth-transition shadow-sm border border-zinc-700">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                </button>
+                <button onclick="document.getElementById('transaction-modal').classList.remove('hidden')" class="bg-zinc-100 text-zinc-950 hover:bg-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 smooth-transition shadow-lg shadow-zinc-100/10">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Nova Transação
+                </button>
+            </div>
+        </div>
+
+        <!-- KPIs Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Saldo Atual -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden group">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-400">Saldo Atual</p>
+                        <h3 class="text-2xl font-bold text-zinc-100 mt-1" id="kpi-balance">R$ 0,00</h3>
+                    </div>
+                    <div class="p-2 bg-zinc-800 rounded-lg text-zinc-300">
+                        <i data-lucide="landmark" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entradas -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-400">Entradas</p>
+                        <h3 class="text-2xl font-bold text-brand-emerald mt-1" id="kpi-income">R$ 0,00</h3>
+                    </div>
+                    <div class="p-2 bg-brand-emerald/10 text-brand-emerald rounded-lg">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saídas -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-400">Saídas</p>
+                        <h3 class="text-2xl font-bold text-brand-carmine mt-1" id="kpi-expense">R$ 0,00</h3>
+                    </div>
+                    <div class="p-2 bg-brand-carmine/10 text-brand-carmine rounded-lg">
+                        <i data-lucide="trending-down" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previsão / Pendentes -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-400">Pendências</p>
+                        <h3 class="text-2xl font-bold text-amber-500 mt-1" id="kpi-pending">R$ 0,00</h3>
+                    </div>
+                    <div class="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Line Chart -->
+            <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h3 class="text-base font-medium text-zinc-200 mb-4">Evolução do Saldo Diário</h3>
+                <div class="w-full h-[300px] relative">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Donut Chart -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h3 class="text-base font-medium text-zinc-200 mb-4">Despesas por Categoria</h3>
+                <div class="w-full h-[300px] relative flex justify-center">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 class="text-base font-medium text-zinc-200">Transações Recentes</h3>
+                
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <!-- Busca -->
+                    <div class="relative flex-1 sm:flex-none">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                        <input type="text" id="filter-search" placeholder="Buscar..." class="w-full sm:w-48 bg-zinc-950 border border-zinc-800 text-sm rounded-lg pl-9 pr-3 py-2 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 smooth-transition">
+                    </div>
+                    <!-- Filtro Tipo -->
+                    <select id="filter-type" class="bg-zinc-950 border border-zinc-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-zinc-600 smooth-transition">
+                        <option value="all">Todos os Tipos</option>
+                        <option value="income">Entradas</option>
+                        <option value="expense">Saídas</option>
+                    </select>
+                    <!-- Export CSV -->
+                    <button id="btn-export" class="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2 smooth-transition border border-zinc-700">
+                        <i data-lucide="download" class="w-4 h-4"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-zinc-400">
+                    <thead class="text-xs uppercase bg-zinc-950/50 text-zinc-500 border-y border-zinc-800 whitespace-nowrap">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-medium">Data</th>
+                            <th scope="col" class="px-4 py-3 font-medium">Descrição</th>
+                            <th scope="col" class="px-4 py-3 font-medium">Categoria</th>
+                            <th scope="col" class="px-4 py-3 font-medium">Método</th>
+                            <th scope="col" class="px-4 py-3 font-medium text-right">Valor</th>
+                            <th scope="col" class="px-4 py-3 font-medium text-center">Status</th>
+                            <th scope="col" class="px-4 py-3 font-medium text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body" class="divide-y divide-zinc-800">
+                        <!-- Transações serão renderizadas aqui via JS -->
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-zinc-500">
+                                Carregando transações...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Nova/Editar Transação -->
+    <div id="transaction-modal" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-semibold text-zinc-100" id="modal-title">Nova Transação</h3>
+                <button onclick="closeModal()" class="text-zinc-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="transaction-form" class="space-y-4">
+                <input type="hidden" id="tx-id">
+                
+                <!-- Tipo (Toggle) -->
+                <div class="flex p-1 bg-zinc-950 rounded-lg border border-zinc-800">
+                    <button type="button" id="btn-type-expense" class="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors bg-zinc-800 text-white shadow-sm" onclick="setTxType('expense')">Despesa</button>
+                    <button type="button" id="btn-type-income" class="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors text-zinc-400 hover:text-white" onclick="setTxType('income')">Receita</button>
+                    <input type="hidden" id="tx-type" value="expense">
+                </div>
+                
+                <!-- Valor -->
+                <div>
+                    <label class="block mb-1.5 text-sm font-medium text-zinc-300">Valor</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">R$</span>
+                        <input type="number" id="tx-amount" step="0.01" min="0" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="0.00">
+                    </div>
+                </div>
+
+                <!-- Descrição -->
+                <div>
+                    <label class="block mb-1.5 text-sm font-medium text-zinc-300">Descrição</label>
+                    <input type="text" id="tx-description" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" placeholder="Ex: Supermercado">
+                </div>
+
+                <!-- Duas Colunas: Categoria e Data -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-1.5 text-sm font-medium text-zinc-300">Categoria</label>
+                        <select id="tx-category" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-1.5 text-sm font-medium text-zinc-300">Data</label>
+                        <input type="date" id="tx-date" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600" style="color-scheme: dark;">
+                    </div>
+                </div>
+
+                <!-- Duas Colunas: Método e Status -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-1.5 text-sm font-medium text-zinc-300">Método de Pagto.</label>
+                        <select id="tx-payment" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600">
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Débito">Débito</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-1.5 text-sm font-medium text-zinc-300">Status</label>
+                        <select id="tx-status" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600">
+                            <option value="paid">Pago</option>
+                            <option value="pending">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal()" class="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg font-medium transition-colors shadow-lg shadow-zinc-100/10" id="btn-save-tx">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    </div> <!-- End relative z-10 wrapper -->
+
+    <!-- Scripts -->
+    <script src="supabaseClient.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

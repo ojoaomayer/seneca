@@ -1,0 +1,5 @@
+description,amount,type,category,date,payment_method,status
+"Salário Mensal",5000.00,income,"Salário",2026-09-01,"Pix",paid
+"Aluguel",1500.00,expense,"Moradia",2026-09-05,"Pix",paid
+"Supermercado",600.50,expense,"Alimentação",2026-09-10,"Cartão de Crédito",pending
+"Freelance Design",1200.00,income,"Renda Extra",2026-09-15,"Pix",paid
