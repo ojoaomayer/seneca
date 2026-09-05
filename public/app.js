@@ -1,6 +1,6 @@
 // app.js
 
-// Estado da AplicaÃƒÂ§ÃƒÂ£o
+// Estado da Aplicação
 const AppState = {
     transactions: [],
     filteredTransactions: [],
@@ -14,15 +14,15 @@ const AppState = {
 
 // Categorias
 const CATEGORIES = [
-    "Moradia", "AlimentaÃƒÂ§ÃƒÂ£o", "Transporte", "Lazer", 
-    "SaÃƒÂºde", "SalÃƒÂ¡rio", "Investimentos", "Outros"
+    "Moradia", "Alimentação", "Transporte", "Lazer", 
+    "Saúde", "Salário", "Investimentos", "Outros"
 ];
 
-// InstÃƒÂ¢ncias dos GrÃƒÂ¡ficos
+// Instâncias dos Gráficos
 let lineChartInstance = null;
 let donutChartInstance = null;
 
-// InicializaÃƒÂ§ÃƒÂ£o
+// Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
     initUI();
@@ -131,7 +131,7 @@ window.customConfirm = (msg) => {
 
 // Setup Inicial de UI
 function initUI() {
-    // Popula categorias no formulÃƒÂ¡rio
+    // Popula categorias no formulário
     const catSelect = document.getElementById('tx-category');
     CATEGORIES.forEach(cat => {
         const opt = document.createElement('option');
@@ -140,10 +140,10 @@ function initUI() {
         catSelect.appendChild(opt);
     });
 
-    // Configura data padrÃƒÂ£o
+    // Configura data padrão
     document.getElementById('tx-date').valueAsDate = new Date();
 
-    // Define saudaÃƒÂ§ÃƒÂ£o baseado na hora
+    // Define saudação baseado na hora
     const hour = new Date().getHours();
     let greeting = 'Boa noite!';
     if (hour >= 5 && hour < 12) greeting = 'Bom dia!';
@@ -169,16 +169,16 @@ async function loadData() {
         applyFilters();
     } catch (error) {
         console.error("Erro ao carregar dados", error);
-        alert("Ocorreu um erro ao carregar as transaÃƒÂ§ÃƒÂµes.");
+        alert("Ocorreu um erro ao carregar as transações.");
     }
 }
 
-// LÃƒÂ³gica de Filtros
+// Lógica de Filtros
 function applyFilters() {
     const now = new Date();
     
     // Filtro de Data
-    let startDate = new Date(0); // PadrÃƒÂ£o: tudo
+    let startDate = new Date(0); // Padrão: tudo
     let endDate = new Date('2100-01-01');
 
     if (AppState.period === 'current_month') {
@@ -221,7 +221,7 @@ function updateDashboard() {
     renderCharts();
 }
 
-// Utils de FormataÃƒÂ§ÃƒÂ£o
+// Utils de Formatação
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
@@ -231,7 +231,7 @@ const formatDate = (dateString) => {
     return `${day}/${month}/${year}`;
 };
 
-// Atualiza CartÃƒÂµes de KPI
+// Atualiza Cartões de KPI
 function updateKPIs() {
     let income = 0;
     let expense = 0;
@@ -279,7 +279,7 @@ function updateKPIs() {
     }
 }
 
-// Renderiza Tabela de TransaÃƒÂ§ÃƒÂµes
+// Renderiza Tabela de Transações
 function renderTable() {
     const tbody = document.getElementById('transactions-table-body');
     tbody.innerHTML = '';
@@ -338,7 +338,7 @@ function renderTable() {
     updateBulkActionBar();
 }
 
-// LÃƒÂ³gica de GrÃƒÂ¡ficos (Chart.js)
+// Lógica de Gráficos (Chart.js)
 function renderCharts() {
     renderLineChart();
     renderDonutChart();
@@ -510,7 +510,7 @@ function closeModal() {
     document.getElementById('transaction-modal').classList.add('hidden');
     document.getElementById('transaction-form').reset();
     document.getElementById('tx-id').value = '';
-    document.getElementById('modal-title').textContent = 'Nova TransaÃƒÂ§ÃƒÂ£o';
+    document.getElementById('modal-title').textContent = 'Nova Transação';
     setTxType('expense');
     document.getElementById('tx-date').valueAsDate = new Date();
     AppState.editingId = null;
@@ -546,7 +546,7 @@ document.getElementById('transaction-form').addEventListener('submit', async (e)
         await loadData();
         closeModal();
     } catch (error) {
-        alert("Erro ao salvar a transaÃƒÂ§ÃƒÂ£o.");
+        alert("Erro ao salvar a transação.");
     } finally {
         const btn = document.getElementById('btn-save-tx');
         btn.textContent = 'Salvar';
@@ -569,13 +569,13 @@ window.editTransaction = (id) => {
     document.getElementById('tx-status').value = tx.status;
     
     setTxType(tx.type);
-    document.getElementById('modal-title').textContent = 'Editar TransaÃƒÂ§ÃƒÂ£o';
+    document.getElementById('modal-title').textContent = 'Editar Transação';
     document.getElementById('transaction-modal').classList.remove('hidden');
 };
 
 // Delete
 window.deleteTransaction = async (id) => {
-    if (confirm("Tem certeza que deseja excluir esta transaÃƒÂ§ÃƒÂ£o?")) {
+    if (confirm("Tem certeza que deseja excluir esta transação?")) {
         try {
             await DB.deleteTransaction(id);
             await loadData();
@@ -610,11 +610,11 @@ function setupEventListeners() {
 // Exportar CSV
 function exportCSV() {
     if (AppState.filteredTransactions.length === 0) {
-        alert("NÃƒÂ£o hÃƒÂ¡ dados para exportar.");
+        alert("Não há dados para exportar.");
         return;
     }
 
-    const headers = ['Data', 'DescriÃƒÂ§ÃƒÂ£o', 'Categoria', 'MÃƒÂ©todo', 'Tipo', 'Status', 'Valor'];
+    const headers = ['Data', 'Descrição', 'Categoria', 'Método', 'Tipo', 'Status', 'Valor'];
     const rows = AppState.filteredTransactions.map(t => [
         t.date,
         `"${t.description}"`,
@@ -645,7 +645,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
         header: true,
         skipEmptyLines: true,
         transformHeader: function(h) {
-            // Remove espaÃƒÂ§os, converte para minÃƒÂºsculo e remove BOM do Excel
+            // Remove espaços, converte para minúsculo e remove BOM do Excel
             return h.trim().toLowerCase().replace(/^\uFEFF/, '');
         },
         complete: async function(results) {
@@ -657,7 +657,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
                     const keys = Object.keys(data[0]);
                     const hasAll = requiredFields.every(f => keys.includes(f));
                     if (!hasAll) {
-                        alert(`O CSV nÃƒÂ£o possui as colunas corretas.\n\nEncontradas:\n${keys.join(', ')}\n\nNecessÃƒÂ¡rias:\n${requiredFields.join(', ')}`);
+                        alert(`O CSV não possui as colunas corretas.\n\nEncontradas:\n${keys.join(', ')}\n\nNecessárias:\n${requiredFields.join(', ')}`);
                         return;
                     }
                 } else {
@@ -689,7 +689,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
 
                 await DB.importTransactions(transactions);
                 await loadData();
-                alert(`ImportaÃƒÂ§ÃƒÂ£o concluÃƒÂ­da com sucesso! ${transactions.length} transaÃƒÂ§ÃƒÂµes adicionadas.`);
+                alert(`Importação concluída com sucesso! ${transactions.length} transações adicionadas.`);
                 e.target.value = ''; // reseta o input
             } catch (err) {
                 console.error(err);
@@ -703,7 +703,7 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
 });
 
 // =====================================
-// AUTENTICAÃƒâ€¡ÃƒÆ’O E PERFIS
+// AUTENTICAÇÃO E PERFIS
 // =====================================
 
 let isLoginMode = true;
@@ -758,11 +758,11 @@ window.logout = () => {
     showAuth();
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
-    AppState.transactions = []; // Limpa os dados em memÃƒÂ³ria
+    AppState.transactions = []; // Limpa os dados em memória
 };
 
 // =====================================
-// AÃƒâ€¡Ãƒâ€¢ES EM MASSA (BULK DELETE)
+// AÇÕES EM MASSA (BULK DELETE)
 // =====================================
 
 window.toggleSelection = (id) => {
@@ -804,22 +804,22 @@ window.updateBulkActionBar = () => {
 };
 
 window.bulkDelete = async () => {
-    if (!(await customConfirm(`Tem certeza que deseja apagar ${AppState.selectedTransactions.length} transaÃ§Ãµes?`))) return;
+    if (!(await customConfirm(`Tem certeza que deseja apagar ${AppState.selectedTransactions.length} transações?`))) return;
     
     try {
         await DB.bulkDeleteTransactions(AppState.selectedTransactions);
         AppState.selectedTransactions = [];
-        updateBulkActionBar(); // Resolve o bug da barra continuar visÃ­vel
+        updateBulkActionBar(); // Resolve o bug da barra continuar visivel
         await loadData();
-        toast.success("TransaÃ§Ãµes apagadas com sucesso!");
+        toast.success("Transações apagadas com sucesso!");
     } catch (err) {
         console.error(err);
-        toast.error("Erro ao excluir transaÃ§Ãµes em massa.");
+        toast.error("Erro ao excluir transações em massa.");
     }
 };
 
 // =====================================
-// EDIÃƒâ€¡ÃƒÆ’O MANUAL DE SALDOS (PROFILE)
+// EDIÇÃO MANUAL DE SALDOS (PROFILE)
 // =====================================
 
 window.openProfileModal = () => {
@@ -1059,7 +1059,7 @@ window.deleteInvestment = async (id) => {
     if (await customConfirm("Tem certeza que deseja apagar este investimento?")) {
         try {
             await DB.deleteInvestment(id);
-            toast.success("Investimento excluÃ­do.");
+            toast.success("Investimento excluído.");
             await loadInvestments();
         } catch (err) {
             toast.error("Erro ao excluir.");
