@@ -452,27 +452,38 @@
             </div>
         </div>
 
-        <!-- Tabela Investimentos -->
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <h3 class="text-base font-medium text-zinc-200 mb-6">Sua Carteira</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-zinc-400">
-                    <thead class="text-xs uppercase bg-zinc-950/50 text-zinc-500 border-y border-zinc-800 whitespace-nowrap">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Ativo</th>
-                            <th class="px-4 py-3 font-medium">Tipo</th>
-                            <th class="px-4 py-3 font-medium">Data</th>
-                            <th class="px-4 py-3 font-medium text-right">Valor</th>
-                            <th class="px-4 py-3 font-medium text-center">Status</th>
-                            <th class="px-4 py-3 font-medium text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="investments-table-body" class="divide-y divide-zinc-800">
-                        <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-zinc-500">Nenhum investimento cadastrado.</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- Conteúdo Principal (Tabela + Gráfico) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Tabela Investimentos -->
+            <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h3 class="text-base font-medium text-zinc-200 mb-6">Sua Carteira</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-zinc-400">
+                        <thead class="text-xs uppercase bg-zinc-950/50 text-zinc-500 border-y border-zinc-800 whitespace-nowrap">
+                            <tr>
+                                <th class="px-4 py-3 font-medium">Ativo</th>
+                                <th class="px-4 py-3 font-medium">Tipo</th>
+                                <th class="px-4 py-3 font-medium">Data</th>
+                                <th class="px-4 py-3 font-medium text-right">Valor</th>
+                                <th class="px-4 py-3 font-medium text-center">Status</th>
+                                <th class="px-4 py-3 font-medium text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="investments-table-body" class="divide-y divide-zinc-800">
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-zinc-500">Nenhum investimento cadastrado.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Gráfico de Distribuição -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col">
+                <h3 class="text-base font-medium text-zinc-200 mb-6">Distribuição</h3>
+                <div class="relative w-full h-[300px] flex items-center justify-center">
+                    <canvas id="investmentsChart"></canvas>
+                </div>
             </div>
         </div>
     </main>

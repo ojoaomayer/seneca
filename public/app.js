@@ -45,7 +45,7 @@ function showApp() {
     const session = DB.getSession();
     if (session && session.user) {
         const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
-        document.getElementById('profile-name').textContent = `OlÃƒÂ¡, ${name}`;
+        document.getElementById('profile-name').textContent = `Olá, ${name}`;
     }
     
     loadData();
@@ -875,7 +875,7 @@ async function loadInvestments() {
 }
 
 function updateInvestmentKPIs() {
-    let total = 0, fixed = 0, variable = 0;
+    let total = 0, fixed = 0, variable = 0, crypto = 0, other = 0;
     
     AppState.investments.forEach(inv => {
         if (inv.status === 'active') {
@@ -883,12 +883,57 @@ function updateInvestmentKPIs() {
             total += amount;
             if (inv.type === 'fixed') fixed += amount;
             if (inv.type === 'variable') variable += amount;
+            if (inv.type === 'crypto') crypto += amount;
+            if (inv.type === 'other') other += amount;
         }
     });
     
     document.getElementById('kpi-inv-total').textContent = formatCurrency(total);
     document.getElementById('kpi-inv-fixed').textContent = formatCurrency(fixed);
     document.getElementById('kpi-inv-variable').textContent = formatCurrency(variable);
+    
+    if (window.renderInvestmentsChart) {
+        window.renderInvestmentsChart(fixed, variable, crypto, other);
+    }
+}
+
+let investmentsChartInstance = null;
+
+window.renderInvestmentsChart = (fixed, variable, crypto, other) => {
+    const ctx = document.getElementById('investmentsChart');
+    if (!ctx) return;
+    
+    if (investmentsChartInstance) {
+        investmentsChartInstance.destroy();
+    }
+    
+    if (fixed === 0 && variable === 0 && crypto === 0 && other === 0) {
+        return; // Não renderiza nada se estiver tudo zerado
+    }
+    
+    investmentsChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Renda Fixa', 'Renda Variável', 'Cripto', 'Outros'],
+            datasets: [{
+                data: [fixed, variable, crypto, other],
+                backgroundColor: ['#10b981', '#a855f7', '#f59e0b', '#71717a'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#a1a1aa', padding: 15, font: { size: 11 } }
+                }
+            }
+        }
+    });
 }
 
 function renderInvestmentsTable() {
