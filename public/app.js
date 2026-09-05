@@ -291,7 +291,7 @@ function renderTable() {
     }
 
     if (AppState.filteredTransactions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500">Nenhuma transaÃƒÂ§ÃƒÂ£o encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500">Nenhuma transação encontrada.</td></tr>`;
         return;
     }
 
@@ -712,7 +712,7 @@ window.toggleAuthMode = () => {
     isLoginMode = !isLoginMode;
     document.getElementById('auth-title').textContent = isLoginMode ? 'Entrar' : 'Criar Conta';
     document.getElementById('btn-auth-submit').textContent = isLoginMode ? 'Entrar' : 'Cadastrar';
-    document.getElementById('auth-toggle-text').textContent = isLoginMode ? 'NÃƒÂ£o tem uma conta?' : 'JÃƒÂ¡ tem uma conta?';
+        document.getElementById('auth-toggle-text').textContent = isLoginMode ? 'Não tem uma conta?' : 'Já tem uma conta?';
     document.getElementById('btn-auth-toggle').textContent = isLoginMode ? 'Criar conta' : 'Entrar';
     
     // Mostrar/Esconder campo de nome
